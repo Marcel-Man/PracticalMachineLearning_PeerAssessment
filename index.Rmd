@@ -31,26 +31,35 @@ set.seed(12345)
 training_clean <- training %>% filter(new_window == 'no') %>% select(starts_with("gyros"), starts_with("accel"), starts_with("magnet"), starts_with("classe")) 
 ```
 
-## Model Fitting
-We will begin by fitting the data to 3 models, random forest, boosting and linear discriminant analysis, applying them to the training dataset. As can be seen below, random forest attained the highest level of accuracy (100%) with a tight 95% confidence interval (0.9998, 1). This is much better than the estimation from boosting and linear discriminant analysis models. 
+## Create data subsets for cross-validation
+We partition the training set into training and validation subsets for cross-validation purpose, assuming a 70-30 split.
+
+```{r}
+training_subIndex <- createDataPartition(y=training_clean$classe, p=0.7, list=FALSE)
+training_sub <- training_clean[training_subIndex, ] 
+validation_sub <- training_clean[-training_subIndex, ]
+```
+
+## Model Fitting and Validation
+We will begin by fitting the training subset to 3 models, random forest, boosting and linear discriminant analysis. Then we validate the performance of our models by passing the validation subset to them. As can be seen below, random forest attained the highest level of accuracy from the validation subset, and better out-of-sample error than boosting and linear discriminant analysis models. 
 As a reference, we also printed out the times so you may compare the relative time taken to build to models.
 
 ```{r}
 Sys.time()
-mod1 <- train(classe ~ ., method="rf", data=training_clean)
+mod1 <- train(classe ~ ., method="rf", data=training_sub)
 Sys.time()
-mod2 <- train(classe ~ ., method="gbm", data=training_clean, verbose=FALSE)
+mod2 <- train(classe ~ ., method="gbm", data=training_sub, verbose=FALSE)
 Sys.time()
-mod3 <- train(classe ~ ., method="lda", data=training_clean)
+mod3 <- train(classe ~ ., method="lda", data=training_sub)
 Sys.time()
 
-pred1 <- predict(mod1, training_clean)
-pred2 <- predict(mod2, training_clean)
-pred3 <- predict(mod3, training_clean)
+pred1 <- predict(mod1, validation_sub)
+pred2 <- predict(mod2, validation_sub)
+pred3 <- predict(mod3, validation_sub)
 
-confusionMatrix(as.factor(training_clean$classe), pred1)
-confusionMatrix(as.factor(training_clean$classe), pred2)
-confusionMatrix(as.factor(training_clean$classe), pred3)
+confusionMatrix(as.factor(validation_sub$classe), pred1)
+confusionMatrix(as.factor(validation_sub$classe), pred2)
+confusionMatrix(as.factor(validation_sub$classe), pred3)
 ```
 
 ## Model Testing
